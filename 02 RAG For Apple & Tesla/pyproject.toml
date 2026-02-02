@@ -1,0 +1,49 @@
+[project]
+name = "rag-4-finance"
+version = "0.1.0"
+description = "Project description"
+requires-python = ">=3.9"
+
+dependencies = [
+    # Core Dependencies
+    "numpy>=1.24.0",
+    "pandas>=2.0.0",
+
+    # PDF Processing
+    "PyMuPDF>=1.23.0",
+    "pdfplumber>=0.10.0",
+
+    # Embeddings and Vector Store
+    "sentence-transformers>=2.2.2",
+    "faiss-cpu>=1.7.4",
+    "transformers>=4.30.0",
+    "torch>=2.0.0",
+
+    # Re-ranking
+
+
+    # LLM Integration
+    "ollama>=0.1.0",
+    "langchain>=0.1.0",
+    "langchain-community>=0.0.10",
+
+    # Utilities
+    "python-dotenv>=1.0.0",
+    "pyyaml>=6.0",
+    "tqdm>=4.65.0",
+    "requests>=2.31.0",
+
+    # Logging
+    "loguru>=0.7.0",
+
+    # Data Validation
+    "pydantic>=2.0.0",
+
+    # Jupyter
+    "jupyter>=1.0.0",
+    "ipykernel>=6.25.0",
+    "notebook>=7.0.0",
+
+    # Progress bars
+    "rich>=13.5.0"
+]
