@@ -14,6 +14,11 @@ dependencies = [
     "pypdf==3.17.0",
     "pdfplumber==0.10.3",
 
+    # Re-ranker
+    "rank-bm25==0.2.2",
+    "flashrank==0.2.3",
+
+
     # Embeddings & Vector Store
     "sentence-transformers==2.2.2",
     "faiss-cpu==1.7.4",
