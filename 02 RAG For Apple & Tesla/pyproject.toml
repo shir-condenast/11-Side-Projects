@@ -1,49 +1,52 @@
 [project]
 name = "rag-4-finance"
 version = "0.1.0"
-description = "Project description"
+description = "RAG + LLM system with PDF ingestion, embeddings, reranking, and evaluation"
 requires-python = ">=3.9"
 
 dependencies = [
     # Core Dependencies
-    "numpy>=1.24.0",
-    "pandas>=2.0.0",
+    "python-dotenv==1.0.0",
+    "pydantic==2.5.0",
+    "pydantic-settings==2.1.0",
 
     # PDF Processing
-    "PyMuPDF>=1.23.0",
-    "pdfplumber>=0.10.0",
+    "pypdf==3.17.0",
+    "pdfplumber==0.10.3",
 
-    # Embeddings and Vector Store
-    "sentence-transformers>=2.2.2",
-    "faiss-cpu>=1.7.4",
-    "transformers>=4.30.0",
-    "torch>=2.0.0",
+    # Embeddings & Vector Store
+    "sentence-transformers==2.2.2",
+    "faiss-cpu==1.7.4",
+    "chromadb==0.4.22",
 
-    # Re-ranking
+    # LLM
+    "transformers==4.36.0",
+    "torch==2.1.0",
+    "accelerate==0.25.0",
+    "bitsandbytes==0.41.3",
 
-
-    # LLM Integration
-    "ollama>=0.1.0",
-    "langchain>=0.1.0",
-    "langchain-community>=0.0.10",
+    # Reranking
+    "rank-bm25==0.2.2",
 
     # Utilities
-    "python-dotenv>=1.0.0",
-    "pyyaml>=6.0",
-    "tqdm>=4.65.0",
-    "requests>=2.31.0",
+    "numpy==1.24.3",
+    "pandas==2.1.4",
+    "tqdm==4.66.1",
+    "loguru==0.7.2",
+]
 
-    # Logging
-    "loguru>=0.7.0",
-
-    # Data Validation
-    "pydantic>=2.0.0",
+[project.optional-dependencies]
+dev = [
+    # Testing
+    "pytest==7.4.3",
+    "pytest-cov==4.1.0",
+    "pytest-mock==3.12.0",
 
     # Jupyter
-    "jupyter>=1.0.0",
-    "ipykernel>=6.25.0",
-    "notebook>=7.0.0",
-
-    # Progress bars
-    "rich>=13.5.0"
+    "jupyter==1.0.0",
+    "ipykernel==6.27.1",
 ]
+
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
