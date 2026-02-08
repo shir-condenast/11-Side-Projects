@@ -14,7 +14,7 @@ A production-grade Retrieval-Augmented Generation (RAG) system for answering que
 
 ## 📋 Requirements
 
-- Python 3.8+
+- Python 3.8-3.10
 - **CPU-only supported** (GPU optional but not required)
 - ~8-10GB RAM for CPU mode
 - ~16GB GPU memory for GPU mode (optional)
@@ -51,20 +51,6 @@ rag_system/
 └── design_report.md
 ```
 
-## 🎯 Usage
-
-### Required Interface Function
-
-```python
-from src.main import initialize_pipeline, answer_question
-
-# Initialize (one-time)
-initialize_pipeline()
-
-# Ask questions
-result = answer_question("What was Apple's total revenue?")
-# Returns: {"answer": str, "sources": list}
-```
 
 ### Command Line
 
