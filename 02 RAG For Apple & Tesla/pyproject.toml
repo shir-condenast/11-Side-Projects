@@ -46,7 +46,8 @@ dependencies = [
 
 [project.optional-dependencies]
 gpu = [
-    "faiss-cpu==1.7.2",
+    "faiss-cpu==1.7.4",
+    
 ]
 
 eval = [

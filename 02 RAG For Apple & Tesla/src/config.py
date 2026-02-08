@@ -49,13 +49,19 @@ class RetrieverConfig:
 @dataclass
 class LLMConfig:
     """Configuration for LLM."""
-    model_name: str = "mistralai/Mistral-7B-Instruct-v0.2"
+    # model_name: str = "mistralai/Mistral-7B-Instruct-v0.2"
     device: str = "cuda" if torch.cuda.is_available() else "cpu"
     max_new_tokens: int = 512
     temperature: float = 0.1
     top_p: float = 0.9
-    load_in_4bit: bool = True  # Use 4-bit quantization for efficiency
-    use_flash_attention: bool = True
+    # load_in_4bit: bool = True  # Use 4-bit quantization for efficiency
+    # use_flash_attention: bool = True
+
+
+    model_name: str = "microsoft/Phi-3-mini-4k-instruct"  # 3.8B params - CPU friendly
+    use_gpu: bool = False  # Safer default
+    load_in_4bit: bool = False  # Disabled for CPU compatibility
+    use_flash_attention: bool = False  # Not available on CPU
 
 
 @dataclass
