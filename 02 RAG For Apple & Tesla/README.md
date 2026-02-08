@@ -2,6 +2,7 @@
 
 A production-grade Retrieval-Augmented Generation (RAG) system for answering questions from Apple and Tesla 10-K filings using open-source LLMs with GPU acceleration.
 
+[Open the notebook](notebooks/demo.ipynb)
 
 ## 🚀 Features
 
