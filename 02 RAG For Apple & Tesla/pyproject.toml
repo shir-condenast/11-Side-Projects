@@ -1,55 +1,70 @@
 [project]
 name = "rag-4-finance"
 version = "0.1.0"
-description = "RAG + LLM system with PDF ingestion, embeddings, reranking, and evaluation"
-requires-python = ">=3.9"
+description = "GPU-enabled RAG system with LangChain, reranking, evaluation, and FastAPI"
+requires-python = ">=3.10,<3.11"
+
 
 dependencies = [
-    # Core Dependencies
-    "python-dotenv==1.0.0",
-    "pydantic==2.5.0",
-    "pydantic-settings==2.1.0",
-
-    # PDF Processing
-    "pypdf==3.17.0",
-    "pdfplumber==0.10.3",
-
-    # Re-ranker
-    "rank-bm25==0.2.2",
-    "flashrank==0.2.3",
-
-
-    # Embeddings & Vector Store
-    "sentence-transformers==2.2.2",
-    "faiss-cpu==1.7.4",
+    # Core RAG
+    "langchain==0.1.0",
+    "langchain-community==0.0.10",
+    "sentence-transformers==2.3.1",
     "chromadb==0.4.22",
 
-    # LLM
-    "transformers==4.36.0",
-    "torch==2.1.0",
+    # PDF Processing
+    "pypdf==4.0.1",
+    "pdfplumber==0.10.3",
+    "pymupdf==1.23.8",
+
+    # LLM & Embeddings
+    "transformers==4.36.2",
+    "torch==2.1.2",
     "accelerate==0.25.0",
     "bitsandbytes==0.41.3",
+    "huggingface-hub==0.20.2",
 
-    # Reranking
+    # Re-ranking
     "rank-bm25==0.2.2",
+    #"flashrank==0.2.3",
+
+    # Vector Store
+    "qdrant-client==1.7.0",
 
     # Utilities
-    "numpy==1.24.3",
-    "pandas==2.1.4",
+    "python-dotenv==1.0.0",
+    "pydantic==2.5.3",
+    "tenacity==8.2.3",
     "tqdm==4.66.1",
+    "numpy>=1.24.3",
+    "pandas>=2.1.4",
+
+    # Logging & Monitoring
     "loguru==0.7.2",
+    "mlflow==2.9.2",
 ]
 
 [project.optional-dependencies]
+gpu = [
+    "faiss-cpu==1.7.2",
+]
+
+eval = [
+    "rouge-score==0.1.2",
+    "bert-score==0.3.13",
+    "ragas==0.1.1",
+]
+
+api = [
+    "fastapi==0.109.0",
+    "uvicorn==0.25.0",
+]
+
 dev = [
-    # Testing
     "pytest==7.4.3",
     "pytest-cov==4.1.0",
     "pytest-mock==3.12.0",
-
-    # Jupyter
-    "jupyter==1.0.0",
-    "ipykernel==6.27.1",
+    "pytest-timeout==2.2.0",
 ]
 
 [build-system]
