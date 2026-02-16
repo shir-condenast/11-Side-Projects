@@ -5,6 +5,7 @@ Handles text generation with custom prompting.
 import torch
 from typing import List, Optional
 from transformers import (
+    AutoConfig, 
     AutoTokenizer,
     AutoModelForCausalLM,
     BitsAndBytesConfig,
@@ -94,11 +95,32 @@ Answer:"""
             model_kwargs["quantization_config"] = quantization_config
         else:
             model_kwargs["torch_dtype"] = torch.float16
-        
+
+
+        # config = AutoConfig.from_pretrained(self.config.model_name)
+        # Model Loaded with it, % config without it
+        config = AutoConfig.from_pretrained(
+            self.config.model_name,
+            trust_remote_code=True
+        )
+
+        # Sanity Check
+        logger.info(f"Config class: {type(config)}")
+
+
+        # # Ensure Rope Scaling is valid
+        # if hasattr(config, "rope_scaling"):
+        #     if config.rope_scaling is None:
+        #         config.rope_scaling = {"type": "none"}
+        #     elif isinstance(config.rope_scaling, dict) and "type" not in config.rope_scaling:
+        #         config.rope_scaling["type"] = "none"
+
         self.model = AutoModelForCausalLM.from_pretrained(
             self.config.model_name,
+            config=config,
             **model_kwargs
         )
+
         
         # Create pipeline
         self.pipeline = pipeline(
