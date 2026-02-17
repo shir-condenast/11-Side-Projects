@@ -2,7 +2,7 @@
 Core data models for RAG system.
 """
 from dataclasses import dataclass, field
-from typing import List, Optional, Dict, Any
+from typing import List, Optional, Dict, Any, Literal
 from datetime import datetime
 from pydantic import BaseModel, Field, validator
 
@@ -42,9 +42,10 @@ class Document(BaseModel):
 class RetrievedContext(BaseModel):
     """Represents retrieved context for a query."""
     chunk: DocumentChunk
-    score: float = Field(..., ge=0.0, le=1.0, description="Similarity score")
+    score: float = Field(..., description="Retrieval score (distance or similarity)")
+    metric: Literal["l2", "cosine", "ip"] = "l2"
     rank: int = Field(..., ge=1, description="Rank in results")
-    
+
     class Config:
         arbitrary_types_allowed = True
 

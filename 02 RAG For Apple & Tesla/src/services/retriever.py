@@ -84,7 +84,7 @@ class Retriever:
         # Filter by similarity threshold
         results = [
             (chunk, score) for chunk, score in results
-            if score >= self.config.similarity_threshold
+            if score <= self.config.similarity_threshold
         ]
         
         if not results:
