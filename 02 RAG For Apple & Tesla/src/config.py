@@ -4,7 +4,7 @@ Handles all system parameters and settings.
 """
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Optional
+from typing import Optional, Literal
 import torch
 
 
@@ -40,20 +40,23 @@ class VectorStoreConfig:
 class RetrieverConfig:
     """Configuration for retrieval pipeline."""
     top_k: int = 5
-    use_reranker: bool = True
+    use_reranker: bool = False # To speed up the process
     reranker_model: str = "cross-encoder/ms-marco-MiniLM-L-6-v2"
     rerank_top_k: int = 3
     similarity_threshold: float = 0.3
+    distance_metric: Literal["l2", "cosine"] = "l2"
 
 
 @dataclass
 class LLMConfig:
     """Configuration for LLM."""
-    # model_name: str = "mistralai/Mistral-7B-Instruct-v0.2"
+    model_name: str = "mistralai/Mistral-7B-Instruct-v0.2"
     device: str = "cuda" if torch.cuda.is_available() else "cpu"
-    max_new_tokens: int = 512
-    temperature: float = 0.1
-    top_p: float = 0.9
+    max_new_tokens: int = 256
+    temperature=False
+    top_p = 1
+    # temperature: float = 0.1
+    # top_p: float = 5
     # load_in_4bit: bool = True  # Use 4-bit quantization for efficiency
     # use_flash_attention: bool = True
 
@@ -117,7 +120,7 @@ def get_gpu_optimized_config() -> RAGConfig:
         config.llm.use_flash_attention = True
         
         # Larger chunks for GPU processing
-        config.chunking.chunk_size = 768
-        config.chunking.chunk_overlap = 192
+        config.chunking.chunk_size = 300 #768
+        config.chunking.chunk_overlap = 50 #192
         
     return config

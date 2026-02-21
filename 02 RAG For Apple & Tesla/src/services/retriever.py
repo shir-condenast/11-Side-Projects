@@ -80,12 +80,43 @@ class Retriever:
         # Initial retrieval with higher k if reranking
         initial_k = top_k * 3 if self.config.use_reranker else top_k
         results = self.vector_store.search(query_embedding, initial_k)
-        
+    
+
         # Filter by similarity threshold
-        results = [
-            (chunk, score) for chunk, score in results
-            if score <= self.config.similarity_threshold
-        ]
+        # results = [
+        #     (chunk, score) for chunk, score in results
+        #     if score <= self.config.similarity_threshold
+        # ]
+
+        # Debug: print top 5 raw scores
+        for i, (chunk, score) in enumerate(results[:5]):
+            logger.debug(f"Raw score {i+1}: {score}")
+
+        # Sort properly depending on metric
+        if self.config.distance_metric == "l2":
+            # lower is better
+            results = sorted(results, key=lambda x: x[1])
+        elif self.config.distance_metric == "cosine":
+            # higher is better
+            results = sorted(results, key=lambda x: x[1], reverse=True)
+
+        # Apply soft threshold (optional)
+        filtered = []
+        for chunk, score in results:
+            if self.config.distance_metric == "l2":
+                if score <= self.config.similarity_threshold:
+                    filtered.append((chunk, score))
+            else:
+                if score >= self.config.similarity_threshold:
+                    filtered.append((chunk, score))
+
+        # Fallback: if threshold removes everything, use top_k anyway
+        if not filtered:
+            logger.warning("Threshold removed all results. Falling back to top_k.")
+            filtered = results[:top_k]
+
+        results = filtered[:top_k]
+
         
         if not results:
             logger.warning("No results above similarity threshold")

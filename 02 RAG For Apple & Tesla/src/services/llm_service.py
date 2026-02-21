@@ -3,6 +3,7 @@ LLM service with GPU acceleration and 4-bit quantization.
 Handles text generation with custom prompting.
 """
 import torch
+import time
 from typing import List, Optional
 from transformers import (
     AutoConfig, 
@@ -85,55 +86,67 @@ Answer:"""
             self.tokenizer.pad_token = self.tokenizer.eos_token
         
         # Load model
-        logger.info("Loading model...")
-        model_kwargs = {
-            "trust_remote_code": True,
-            "device_map": "auto" if self.config.device == "cuda" else None,
-        }
+        # logger.info("Loading model...")
+        # model_kwargs = {
+        #     "trust_remote_code": True,
+        #     "device_map": "auto" if self.config.device == "cuda" else None,
+        # }
         
-        if quantization_config:
-            model_kwargs["quantization_config"] = quantization_config
-        else:
-            model_kwargs["torch_dtype"] = torch.float16
+        # if quantization_config:
+        #     model_kwargs["quantization_config"] = quantization_config
+        # else:
+        #         if self.config.device == "cpu":
+        #             model_kwargs["torch_dtype"] = torch.float32
+        #         else:
+        #             model_kwargs["torch_dtype"] = torch.float16
 
 
-        # config = AutoConfig.from_pretrained(self.config.model_name)
-        # Model Loaded with it, % config without it
         config = AutoConfig.from_pretrained(
             self.config.model_name,
             trust_remote_code=True
         )
 
-        # Sanity Check
+        config.use_cache = True
+        config.attn_implementation = "eager"
+        # Load model
+        logger.info("Loading model...")
+
+        if self.config.device == "cpu":
+            self.model = AutoModelForCausalLM.from_pretrained(
+                self.config.model_name,
+                config=config,
+                trust_remote_code=True,
+                torch_dtype=torch.float32
+            )
+
+        else:
+            self.model = AutoModelForCausalLM.from_pretrained(
+                self.config.model_name,
+                config=config,
+                trust_remote_code=True,
+                device_map="auto",
+                torch_dtype=torch.float16
+            )
+
+
+
+        # config = AutoConfig.from_pretrained(self.config.model_name)
+        # Model Loaded with it, % config without it
+        # config = AutoConfig.from_pretrained(
+        #     self.config.model_name,
+        #     trust_remote_code=True
+        # )
+        # config = AutoConfig.from_pretrained(
+        #     self.config.model_name,
+        #     trust_remote_code=True
+        # )
+
+        # config.use_cache = True
+        # config.attn_implementation = "eager"
+            # Sanity Check
         logger.info(f"Config class: {type(config)}")
 
 
-        # # Ensure Rope Scaling is valid
-        # if hasattr(config, "rope_scaling"):
-        #     if config.rope_scaling is None:
-        #         config.rope_scaling = {"type": "none"}
-        #     elif isinstance(config.rope_scaling, dict) and "type" not in config.rope_scaling:
-        #         config.rope_scaling["type"] = "none"
-
-        self.model = AutoModelForCausalLM.from_pretrained(
-            self.config.model_name,
-            config=config,
-            **model_kwargs
-        )
-
-        
-        # Create pipeline
-        self.pipeline = pipeline(
-            "text-generation",
-            model=self.model,
-            tokenizer=self.tokenizer,
-            max_new_tokens=self.config.max_new_tokens,
-            temperature=self.config.temperature,
-            top_p=self.config.top_p,
-            do_sample=True if self.config.temperature > 0 else False,
-        )
-        
-        logger.info("LLM loaded successfully")
         
         if torch.cuda.is_available():
             logger.info(f"GPU Memory allocated: {torch.cuda.memory_allocated() / 1024**3:.2f} GB")
@@ -144,35 +157,56 @@ Answer:"""
         max_new_tokens: Optional[int] = None
     ) -> str:
         """
-        Generate text from prompt.
-        
-        Args:
-            prompt: Input prompt
-            max_new_tokens: Override max tokens
-            
-        Returns:
-            Generated text
+        Generate text from prompt with latency + token logging
         """
+        import time
+        
         max_tokens = max_new_tokens or self.config.max_new_tokens
         
         try:
-            # Generate
-            outputs = self.pipeline(
+            start_total = time.time()
+
+            # -------- TOKENIZE INPUT --------
+            inputs = self.tokenizer(
                 prompt,
-                max_new_tokens=max_tokens,
-                num_return_sequences=1,
-                pad_token_id=self.tokenizer.eos_token_id
+                return_tensors="pt",
+                truncation=False
             )
-            
-            # Extract generated text
-            generated = outputs[0]['generated_text']
-            
-            # Remove prompt from output
+
+            input_token_count = inputs["input_ids"].shape[1]
+            logger.warning(f"🧠 INPUT TOKENS SENT TO LLM: {input_token_count}")
+
+            inputs = {k: v.to(self.device) for k, v in inputs.items()}
+
+            # -------- GENERATE --------
+            start_gen = time.time()
+
+            with torch.no_grad():
+                outputs = self.model.generate(
+                    **inputs,
+                    max_new_tokens=max_tokens,
+                    do_sample=False,
+                    use_cache=True,   # VERY IMPORTANT for CPU
+                    pad_token_id=self.tokenizer.eos_token_id
+                )
+
+            end_gen = time.time()
+            logger.warning(f"⏱️ GENERATION TIME: {end_gen - start_gen:.2f} sec")
+
+            # -------- DECODE --------
+            generated = self.tokenizer.decode(
+                outputs[0],
+                skip_special_tokens=True
+            )
+
             if generated.startswith(prompt):
                 generated = generated[len(prompt):].strip()
-            
+
+            end_total = time.time()
+            logger.warning(f"🚨 TOTAL LLM CALL TIME: {end_total - start_total:.2f} sec")
+
             return generated
-        
+
         except Exception as e:
             logger.error(f"Error during generation: {e}")
             raise
@@ -183,37 +217,54 @@ Answer:"""
         contexts: List[RetrievedContext],
         prompt_template: Optional[PromptTemplate] = None
     ) -> str:
-        """
-        Answer question using retrieved contexts.
-        
-        Args:
-            question: User question
-            contexts: Retrieved contexts
-            prompt_template: Optional custom prompt template
-            
-        Returns:
-            Generated answer
-        """
+
         template = prompt_template or self.DEFAULT_PROMPT
-        
-        # Format context
-        context_str = self._format_contexts(contexts)
-        
-        # Create prompt
+
+        MAX_INPUT_TOKENS = 1500   # safe for CPU Phi-3
+        RESERVED_FOR_QA = 300
+        context_budget = MAX_INPUT_TOKENS - RESERVED_FOR_QA
+
+        selected_contexts = []
+        used_tokens = 0
+
+        for ctx in contexts:
+
+            chunk_text = ctx.chunk.text
+
+            token_count = self.tokenizer(
+                chunk_text,
+                return_tensors="pt"
+            )["input_ids"].shape[1]
+
+            if used_tokens + token_count > context_budget:
+                break
+
+            selected_contexts.append(ctx)
+            used_tokens += token_count
+
+        logger.warning(f"✅ CONTEXT TOKENS USED: {used_tokens}")
+
+        context_str = self._format_contexts(selected_contexts)
+
         user_prompt = template.format(
             context=context_str,
             question=question
         )
-        
-        # Combine system and user prompts
+
         full_prompt = self._format_full_prompt(
             template.system_prompt,
             user_prompt
         )
-        
-        # Generate answer
+
+        total_tokens = self.tokenizer(
+            full_prompt,
+            return_tensors="pt"
+        )["input_ids"].shape[1]
+
+        logger.warning(f"🧠 FINAL INPUT TOKENS: {total_tokens}")
+
         answer = self.generate(full_prompt)
-        
+
         return answer
     
     def _format_contexts(self, contexts: List[RetrievedContext]) -> str:
