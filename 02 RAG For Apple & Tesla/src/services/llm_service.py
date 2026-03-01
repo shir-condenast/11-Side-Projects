@@ -1,16 +1,18 @@
 """
-LLM service with GPU acceleration and 4-bit quantization.
-Handles text generation with custom prompting.
+CPU-Optimized LLM Service for Phi-3-mini.
+4-bit quantization.
+Deterministic generation for financial RAG.
 """
+
 import torch
+import re
 import time
 from typing import List, Optional
 from transformers import (
-    AutoConfig, 
     AutoTokenizer,
     AutoModelForCausalLM,
     BitsAndBytesConfig,
-    pipeline
+    AutoConfig
 )
 from loguru import logger
 
@@ -19,198 +21,132 @@ from src.models.schemas import RetrievedContext, PromptTemplate
 
 
 class LLMService:
-    """Service for LLM inference with GPU support."""
-    
-    # Default prompt template
+    """CPU-only LLM inference service."""
+
     DEFAULT_PROMPT = PromptTemplate(
         system_prompt="""You are a financial document analyst. Your task is to answer questions based ONLY on the provided context from Apple and Tesla 10-K filings.
 
 CRITICAL RULES:
 1. Use ONLY information from the provided context
 2. If the answer is not in the context, respond: "Not specified in the document."
-3. For questions outside the scope of the documents, respond: "This question cannot be answered based on the provided documents."
+3. For out-of-scope questions, respond: "This question cannot be answered based on the provided documents."
 4. Always cite sources as: ["Company 10-K", "Item X", "p. Y"]
 5. Be precise with numbers, dates, and facts
-6. Do not make assumptions or use external knowledge""",
-        
+6. Do not use external knowledge""",
+
         user_template="""Context from documents:
 {context}
 
 Question: {question}
 
-Instructions:
-- Answer based ONLY on the context above
-- Cite sources for each fact
-- If information is not in the context, say "Not specified in the document."
-- For out-of-scope questions, say "This question cannot be answered based on the provided documents."
-
 Answer:"""
     )
-    
+
     def __init__(self, config: LLMConfig):
-        """
-        Initialize LLM service.
-        
-        Args:
-            config: LLM configuration
-        """
         self.config = config
-        self.device = torch.device(config.device)
-        
-        logger.info(f"Loading LLM: {config.model_name}")
-        logger.info(f"Using device: {self.device}")
-        
+
+        if config.device != "cpu":
+            raise ValueError("This service is CPU-only. Set device='cpu'.")
+
+        torch.set_num_threads(4)  # adjust based on CPU cores
+
+        logger.info(f"Loading model: {config.model_name}")
         self._load_model()
-    
+
+    # ----------------------------------------------------
+    # MODEL LOADING
+    # ----------------------------------------------------
     def _load_model(self):
-        """Load model with quantization if configured."""
-        # Configure quantization
-        quantization_config = None
-        if self.config.load_in_4bit:
-            quantization_config = BitsAndBytesConfig(
-                load_in_4bit=True,
-                bnb_4bit_compute_dtype=torch.float16,
-                bnb_4bit_use_double_quant=True,
-                bnb_4bit_quant_type="nf4"
-            )
-            logger.info("Using 4-bit quantization")
-        
-        # Load tokenizer
+
         logger.info("Loading tokenizer...")
         self.tokenizer = AutoTokenizer.from_pretrained(
             self.config.model_name,
             trust_remote_code=True
         )
-        
+
         if self.tokenizer.pad_token is None:
             self.tokenizer.pad_token = self.tokenizer.eos_token
-        
-        # Load model
-        # logger.info("Loading model...")
-        # model_kwargs = {
-        #     "trust_remote_code": True,
-        #     "device_map": "auto" if self.config.device == "cuda" else None,
-        # }
-        
-        # if quantization_config:
-        #     model_kwargs["quantization_config"] = quantization_config
-        # else:
-        #         if self.config.device == "cpu":
-        #             model_kwargs["torch_dtype"] = torch.float32
-        #         else:
-        #             model_kwargs["torch_dtype"] = torch.float16
 
+        logger.info("Loading config...")
 
-        config = AutoConfig.from_pretrained(
+        model_config = AutoConfig.from_pretrained(
             self.config.model_name,
             trust_remote_code=True
         )
 
-        config.use_cache = True
-        config.attn_implementation = "eager"
-        # Load model
+        # 🔥 FORCE SAFE ATTENTION FOR CPU
+        model_config.attn_implementation = "eager"
+
+        logger.info("Configuring 4-bit quantization...")
+
+        quant_config = BitsAndBytesConfig(
+            load_in_4bit=True,
+            bnb_4bit_compute_dtype=torch.float32,
+            bnb_4bit_use_double_quant=True,
+            bnb_4bit_quant_type="nf4"
+        )
+
         logger.info("Loading model...")
 
-        if self.config.device == "cpu":
-            self.model = AutoModelForCausalLM.from_pretrained(
-                self.config.model_name,
-                config=config,
-                trust_remote_code=True,
-                torch_dtype=torch.float32
-            )
+        self.model = AutoModelForCausalLM.from_pretrained(
+            self.config.model_name,
+            config=model_config,
+            trust_remote_code=True,
+            quantization_config=quant_config,
+            device_map=None,
+            low_cpu_mem_usage=True
+        )
 
-        else:
-            self.model = AutoModelForCausalLM.from_pretrained(
-                self.config.model_name,
-                config=config,
-                trust_remote_code=True,
-                device_map="auto",
-                torch_dtype=torch.float16
-            )
+        self.model.eval()
 
+        logger.info("Model loaded successfully on CPU.")
 
-
-        # config = AutoConfig.from_pretrained(self.config.model_name)
-        # Model Loaded with it, % config without it
-        # config = AutoConfig.from_pretrained(
-        #     self.config.model_name,
-        #     trust_remote_code=True
-        # )
-        # config = AutoConfig.from_pretrained(
-        #     self.config.model_name,
-        #     trust_remote_code=True
-        # )
-
-        # config.use_cache = True
-        # config.attn_implementation = "eager"
-            # Sanity Check
-        logger.info(f"Config class: {type(config)}")
-
-
-        
-        if torch.cuda.is_available():
-            logger.info(f"GPU Memory allocated: {torch.cuda.memory_allocated() / 1024**3:.2f} GB")
-    
+    # ----------------------------------------------------
+    # GENERATION
+    # ----------------------------------------------------
     def generate(
         self,
         prompt: str,
         max_new_tokens: Optional[int] = None
     ) -> str:
-        """
-        Generate text from prompt with latency + token logging
-        """
-        import time
-        
+
         max_tokens = max_new_tokens or self.config.max_new_tokens
-        
-        try:
-            start_total = time.time()
 
-            # -------- TOKENIZE INPUT --------
-            inputs = self.tokenizer(
-                prompt,
-                return_tensors="pt",
-                truncation=False
+        start_total = time.time()
+
+        inputs = self.tokenizer(
+            prompt,
+            return_tensors="pt",
+            truncation=False
+        )
+
+        input_tokens = inputs["input_ids"].shape[1]
+        logger.info(f"Input tokens: {input_tokens}")
+
+        with torch.no_grad():
+            outputs = self.model.generate(
+                **inputs,
+                max_new_tokens=max_tokens,
+                do_sample=False,  # deterministic for financial QA
+                pad_token_id=self.tokenizer.eos_token_id
             )
 
-            input_token_count = inputs["input_ids"].shape[1]
-            logger.warning(f"🧠 INPUT TOKENS SENT TO LLM: {input_token_count}")
+        output_text = self.tokenizer.decode(
+            outputs[0],
+            skip_special_tokens=True
+        )
 
-            inputs = {k: v.to(self.device) for k, v in inputs.items()}
+        if output_text.startswith(prompt):
+            output_text = output_text[len(prompt):].strip()
 
-            # -------- GENERATE --------
-            start_gen = time.time()
+        total_time = time.time() - start_total
+        logger.info(f"Generation time: {total_time:.2f} sec")
 
-            with torch.no_grad():
-                outputs = self.model.generate(
-                    **inputs,
-                    max_new_tokens=max_tokens,
-                    do_sample=False,
-                    use_cache=True,   # VERY IMPORTANT for CPU
-                    pad_token_id=self.tokenizer.eos_token_id
-                )
+        return output_text
 
-            end_gen = time.time()
-            logger.warning(f"⏱️ GENERATION TIME: {end_gen - start_gen:.2f} sec")
-
-            # -------- DECODE --------
-            generated = self.tokenizer.decode(
-                outputs[0],
-                skip_special_tokens=True
-            )
-
-            if generated.startswith(prompt):
-                generated = generated[len(prompt):].strip()
-
-            end_total = time.time()
-            logger.warning(f"🚨 TOTAL LLM CALL TIME: {end_total - start_total:.2f} sec")
-
-            return generated
-
-        except Exception as e:
-            logger.error(f"Error during generation: {e}")
-            raise
-    
+    # ----------------------------------------------------
+    # QA PIPELINE
+    # ----------------------------------------------------
     def answer_question(
         self,
         question: str,
@@ -220,15 +156,14 @@ Answer:"""
 
         template = prompt_template or self.DEFAULT_PROMPT
 
-        MAX_INPUT_TOKENS = 1500   # safe for CPU Phi-3
-        RESERVED_FOR_QA = 300
-        context_budget = MAX_INPUT_TOKENS - RESERVED_FOR_QA
+        MAX_INPUT_TOKENS = 1000
+        RESERVED_FOR_OUTPUT = 200
+        context_budget = MAX_INPUT_TOKENS - RESERVED_FOR_OUTPUT
 
         selected_contexts = []
         used_tokens = 0
 
         for ctx in contexts:
-
             chunk_text = ctx.chunk.text
 
             token_count = self.tokenizer(
@@ -242,11 +177,11 @@ Answer:"""
             selected_contexts.append(ctx)
             used_tokens += token_count
 
-        logger.warning(f"✅ CONTEXT TOKENS USED: {used_tokens}")
+        logger.info(f"Context tokens used: {used_tokens}")
 
         context_str = self._format_contexts(selected_contexts)
 
-        user_prompt = template.format(
+        user_prompt = template.user_template.format(
             context=context_str,
             question=question
         )
@@ -261,17 +196,17 @@ Answer:"""
             return_tensors="pt"
         )["input_ids"].shape[1]
 
-        logger.warning(f"🧠 FINAL INPUT TOKENS: {total_tokens}")
+        logger.info(f"Final input tokens: {total_tokens}")
 
-        answer = self.generate(full_prompt)
+        return self.generate(full_prompt)
 
-        return answer
-    
+    # ----------------------------------------------------
+    # HELPERS
+    # ----------------------------------------------------
     def _format_contexts(self, contexts: List[RetrievedContext]) -> str:
-        """Format retrieved contexts for prompt."""
         if not contexts:
             return "No relevant context found."
-        
+
         formatted = []
         for ctx in contexts:
             source_info = (
@@ -280,74 +215,23 @@ Answer:"""
                 f"p. {ctx.chunk.metadata.get('page_number', 'Unknown')}]"
             )
             formatted.append(f"{source_info}\n{ctx.chunk.text}\n")
-        
+
         return "\n---\n".join(formatted)
-    
+
     def _format_full_prompt(self, system_prompt: str, user_prompt: str) -> str:
-        """Format complete prompt based on model type."""
-        model_name_lower = self.config.model_name.lower()
-        
-        # Mistral format
-        if 'mistral' in model_name_lower:
-            return f"<s>[INST] {system_prompt}\n\n{user_prompt} [/INST]"
-        
-        # Llama format
-        elif 'llama' in model_name_lower:
-            return f"<s>[INST] <<SYS>>\n{system_prompt}\n<</SYS>>\n\n{user_prompt} [/INST]"
-        
-        # Phi format
-        elif 'phi' in model_name_lower:
-            return f"System: {system_prompt}\n\nUser: {user_prompt}\n\nAssistant:"
-        
-        # Generic format
-        else:
-            return f"System: {system_prompt}\n\nUser: {user_prompt}\n\nAssistant:"
-    
-    def extract_sources(self, answer: str) -> List[str]:
-        """
-        Extract source citations from answer.
-        
-        Args:
-            answer: Generated answer
-            
-        Returns:
-            List of source citations
-        """
-        import re
-        
-        # Pattern to match citations like ["Apple 10-K", "Item 8", "p. 28"]
+        return f"System: {system_prompt}\n\nUser: {user_prompt}\n\nAssistant:"
+
+    def extract_sources(self, answer: str) -> List[List[str]]:
         pattern = r'\["([^"]+)",\s*"([^"]+)",\s*"([^"]+)"\]'
         matches = re.findall(pattern, answer)
-        
-        sources = []
-        for match in matches:
-            sources.append(list(match))
-        
-        return sources
-    
+        return [list(match) for match in matches]
+
     def is_refusal(self, answer: str) -> bool:
-        """
-        Check if answer is a refusal response.
-        
-        Args:
-            answer: Generated answer
-            
-        Returns:
-            True if answer is a refusal
-        """
         refusal_phrases = [
             "not specified in the document",
             "cannot be answered based on the provided documents",
-            "not found in the provided",
-            "information is not available",
             "not mentioned in the document"
         ]
-        
+
         answer_lower = answer.lower()
         return any(phrase in answer_lower for phrase in refusal_phrases)
-    
-    def clear_gpu_cache(self):
-        """Clear GPU cache."""
-        if torch.cuda.is_available():
-            torch.cuda.empty_cache()
-            logger.info("GPU cache cleared")
