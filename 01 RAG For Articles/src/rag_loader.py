@@ -2,35 +2,46 @@ from chromadb.utils import embedding_functions
 from chromadb import Client
 
 import json
-import ollama
+from openai import OpenAI
 from typing import List, Dict
+import os
+from dotenv import load_dotenv
 
 import re
 from collections import Counter
+
+# Load environment variables
+load_dotenv()
 
 class HybridRAG:
     def __init__(self, SAMPLE_ARTICLES):
         # Initialize ChromaDB
         self.client = Client()
-        
+
         # Sentence transformers for embeddings
         self.embedding_function = embedding_functions.SentenceTransformerEmbeddingFunction(
             model_name="all-MiniLM-L6-v2"
         )
-        
+
         # Create collection
         try:
             self.client.delete_collection("interior_design_articles")
         except:
             pass
-        
+
         self.collection = self.client.create_collection(
             name="interior_design_articles",
             embedding_function=self.embedding_function
         )
-        
+
         # Store articles for keyword search
         self.articles = SAMPLE_ARTICLES
+
+        # Initialize OpenAI client with API key from environment
+        api_key = os.getenv("OPENAI_API_KEY")
+        if not api_key:
+            raise ValueError("OPENAI_API_KEY not found in environment variables. Please set it in .env file")
+        self.openai_client = OpenAI(api_key=api_key)
         
     def populate_database(self):
         """Add all articles to ChromaDB"""
@@ -146,7 +157,7 @@ class HybridRAG:
         return [item['article'] for item in sorted_results[:top_k]]
     
     def generate_summary(self, article: Dict) -> str:
-        """Generate 2-3 line summary using Ollama"""
+        """Generate 2-3 line summary using OpenAI GPT"""
         try:
             prompt = f"""Summarize this interior design article in 2-3 lines for a user searching for design inspiration.
 
@@ -154,13 +165,19 @@ Title: {article['title']}
 Content: {article['content']}
 
 Summary:"""
-            
-            response = ollama.generate(
-                model='qwen2.5:0.5b', 
-                prompt=prompt
+
+            response = self.openai_client.chat.completions.create(
+                model='gpt-3.5-turbo',
+                messages=[
+                    {"role": "system", "content": "You are a helpful interior design assistant that creates concise, inspiring summaries."},
+                    {"role": "user", "content": prompt}
+                ],
+                max_tokens=100,
+                temperature=0.7
             )
-            
-            return response['response'].strip()
+
+            return response.choices[0].message.content.strip()
         except Exception as e:
-            # Fallback if Ollama fails
+            # Fallback if OpenAI fails
+            print(f"OpenAI API error: {e}")
             return article['content'][:150] + "..."
