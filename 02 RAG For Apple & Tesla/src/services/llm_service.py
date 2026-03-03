@@ -1,27 +1,26 @@
 """
-CPU-Optimized LLM Service for Phi-3-mini.
-4-bit quantization.
-Deterministic generation for financial RAG.
+OpenAI-based LLM Service for Financial RAG.
+Uses GPT models via OpenAI API for question answering.
+CPU-compatible (no local model loading required).
 """
 
-import torch
+import os
 import re
 import time
 from typing import List, Optional
-from transformers import (
-    AutoTokenizer,
-    AutoModelForCausalLM,
-    BitsAndBytesConfig,
-    AutoConfig
-)
+from openai import OpenAI
+from dotenv import load_dotenv
 from loguru import logger
 
 from src.config import LLMConfig
 from src.models.schemas import RetrievedContext, PromptTemplate
 
+# Load environment variables
+load_dotenv()
+
 
 class LLMService:
-    """CPU-only LLM inference service."""
+    """OpenAI-based LLM service for financial QA."""
 
     DEFAULT_PROMPT = PromptTemplate(
         system_prompt="""You are a financial document analyst. Your task is to answer questions based ONLY on the provided context from Apple and Tesla 10-K filings.
@@ -45,61 +44,15 @@ Answer:"""
     def __init__(self, config: LLMConfig):
         self.config = config
 
-        if config.device != "cpu":
-            raise ValueError("This service is CPU-only. Set device='cpu'.")
+        # Initialize OpenAI client
+        api_key = os.getenv("OPENAI_API_KEY")
+        if not api_key:
+            raise ValueError("OPENAI_API_KEY not found in environment variables. Please set it in .env file")
 
-        torch.set_num_threads(4)  # adjust based on CPU cores
+        self.client = OpenAI(api_key=api_key)
+        self.model_name = config.model_name  # Use model from config (default: gpt-4o-mini)
 
-        logger.info(f"Loading model: {config.model_name}")
-        self._load_model()
-
-    # ----------------------------------------------------
-    # MODEL LOADING
-    # ----------------------------------------------------
-    def _load_model(self):
-
-        logger.info("Loading tokenizer...")
-        self.tokenizer = AutoTokenizer.from_pretrained(
-            self.config.model_name,
-            trust_remote_code=True
-        )
-
-        if self.tokenizer.pad_token is None:
-            self.tokenizer.pad_token = self.tokenizer.eos_token
-
-        logger.info("Loading config...")
-
-        model_config = AutoConfig.from_pretrained(
-            self.config.model_name,
-            trust_remote_code=True
-        )
-
-        # 🔥 FORCE SAFE ATTENTION FOR CPU
-        model_config.attn_implementation = "eager"
-
-        logger.info("Configuring 4-bit quantization...")
-
-        quant_config = BitsAndBytesConfig(
-            load_in_4bit=True,
-            bnb_4bit_compute_dtype=torch.float32,
-            bnb_4bit_use_double_quant=True,
-            bnb_4bit_quant_type="nf4"
-        )
-
-        logger.info("Loading model...")
-
-        self.model = AutoModelForCausalLM.from_pretrained(
-            self.config.model_name,
-            config=model_config,
-            trust_remote_code=True,
-            quantization_config=quant_config,
-            device_map=None,
-            low_cpu_mem_usage=True
-        )
-
-        self.model.eval()
-
-        logger.info("Model loaded successfully on CPU.")
+        logger.info(f"Initialized OpenAI LLM service with model: {self.model_name}")
 
     # ----------------------------------------------------
     # GENERATION
@@ -109,40 +62,31 @@ Answer:"""
         prompt: str,
         max_new_tokens: Optional[int] = None
     ) -> str:
-
+        """Generate response using OpenAI API."""
         max_tokens = max_new_tokens or self.config.max_new_tokens
 
         start_total = time.time()
 
-        inputs = self.tokenizer(
-            prompt,
-            return_tensors="pt",
-            truncation=False
-        )
-
-        input_tokens = inputs["input_ids"].shape[1]
-        logger.info(f"Input tokens: {input_tokens}")
-
-        with torch.no_grad():
-            outputs = self.model.generate(
-                **inputs,
-                max_new_tokens=max_tokens,
-                do_sample=False,  # deterministic for financial QA
-                pad_token_id=self.tokenizer.eos_token_id
+        try:
+            response = self.client.chat.completions.create(
+                model=self.model_name,
+                messages=[
+                    {"role": "user", "content": prompt}
+                ],
+                max_tokens=max_tokens,
+                temperature=0.1  # Low temperature for factual responses
             )
 
-        output_text = self.tokenizer.decode(
-            outputs[0],
-            skip_special_tokens=True
-        )
+            output_text = response.choices[0].message.content.strip()
 
-        if output_text.startswith(prompt):
-            output_text = output_text[len(prompt):].strip()
+            total_time = time.time() - start_total
+            logger.info(f"Generation time: {total_time:.2f} sec")
 
-        total_time = time.time() - start_total
-        logger.info(f"Generation time: {total_time:.2f} sec")
+            return output_text
 
-        return output_text
+        except Exception as e:
+            logger.error(f"OpenAI API error: {e}")
+            return "Error generating response. Please try again."
 
     # ----------------------------------------------------
     # QA PIPELINE
@@ -153,31 +97,13 @@ Answer:"""
         contexts: List[RetrievedContext],
         prompt_template: Optional[PromptTemplate] = None
     ) -> str:
-
+        """Answer question using OpenAI with provided contexts."""
         template = prompt_template or self.DEFAULT_PROMPT
 
-        MAX_INPUT_TOKENS = 1000
-        RESERVED_FOR_OUTPUT = 200
-        context_budget = MAX_INPUT_TOKENS - RESERVED_FOR_OUTPUT
+        # Select contexts (limit to avoid token limits)
+        selected_contexts = contexts[:5]  # Take top 5 contexts
 
-        selected_contexts = []
-        used_tokens = 0
-
-        for ctx in contexts:
-            chunk_text = ctx.chunk.text
-
-            token_count = self.tokenizer(
-                chunk_text,
-                return_tensors="pt"
-            )["input_ids"].shape[1]
-
-            if used_tokens + token_count > context_budget:
-                break
-
-            selected_contexts.append(ctx)
-            used_tokens += token_count
-
-        logger.info(f"Context tokens used: {used_tokens}")
+        logger.info(f"Using {len(selected_contexts)} contexts for answer generation")
 
         context_str = self._format_contexts(selected_contexts)
 
@@ -186,19 +112,22 @@ Answer:"""
             question=question
         )
 
-        full_prompt = self._format_full_prompt(
-            template.system_prompt,
-            user_prompt
-        )
+        try:
+            response = self.client.chat.completions.create(
+                model=self.model_name,
+                messages=[
+                    {"role": "system", "content": template.system_prompt},
+                    {"role": "user", "content": user_prompt}
+                ],
+                max_tokens=self.config.max_new_tokens,
+                temperature=0.1
+            )
 
-        total_tokens = self.tokenizer(
-            full_prompt,
-            return_tensors="pt"
-        )["input_ids"].shape[1]
+            return response.choices[0].message.content.strip()
 
-        logger.info(f"Final input tokens: {total_tokens}")
-
-        return self.generate(full_prompt)
+        except Exception as e:
+            logger.error(f"OpenAI API error: {e}")
+            return "Error generating response. Please try again."
 
     # ----------------------------------------------------
     # HELPERS
@@ -218,9 +147,6 @@ Answer:"""
 
         return "\n---\n".join(formatted)
 
-    def _format_full_prompt(self, system_prompt: str, user_prompt: str) -> str:
-        return f"System: {system_prompt}\n\nUser: {user_prompt}\n\nAssistant:"
-
     def extract_sources(self, answer: str) -> List[List[str]]:
         pattern = r'\["([^"]+)",\s*"([^"]+)",\s*"([^"]+)"\]'
         matches = re.findall(pattern, answer)
@@ -235,3 +161,7 @@ Answer:"""
 
         answer_lower = answer.lower()
         return any(phrase in answer_lower for phrase in refusal_phrases)
+
+    def clear_gpu_cache(self):
+        """No-op for OpenAI service (no local GPU usage)."""
+        pass

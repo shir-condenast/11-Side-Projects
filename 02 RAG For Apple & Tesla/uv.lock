@@ -1,5 +1,5 @@
 version = 1
-revision = 2
+revision = 3
 requires-python = "==3.10.*"
 resolution-markers = [
     "sys_platform != 'win32'",
@@ -231,15 +231,6 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/1c/93/2c97a85cbb66a8a256a13176e11c9c4508074e2341299fe75ee955c81eff/bert_score-0.3.13.tar.gz", hash = "sha256:8ffe5838eac8cdd988b8b1a896af7f49071188c8c011a1ed160d71a9899a2ba4", size = 48621, upload-time = "2023-02-20T21:07:29.477Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/c6/8c/bc5457de4c004b1a623b31f7bc8d0375fb699b7d67df11879098b4b7b7c8/bert_score-0.3.13-py3-none-any.whl", hash = "sha256:bbbb4c7fcdaa46d7681aff49f37f96faa09ed74e1b150e659bdc6b58a66989b9", size = 61135, upload-time = "2023-02-20T21:07:27.226Z" },
-]
-
-[[package]]
-name = "bitsandbytes"
-version = "0.41.3"
-source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/4a/1f/0117efd05c1fc658d2a4983b098b613c9a282b4291017c476723618fd34a/bitsandbytes-0.41.3.tar.gz", hash = "sha256:016de5075cd96b86ca195c18b48df694af84c9ef4a10ec3cd1bfffd3b333164e", size = 91075931, upload-time = "2023-12-06T22:46:39.365Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/1b/db/1a3c0d3542484806c273e8027a328b12be69c1042bb9e134efe93ddf9b50/bitsandbytes-0.41.3-py3-none-any.whl", hash = "sha256:0060b1597236a5d52924fc911eb78d0f1482b7183c1d8a89312fb88c559aab86", size = 92612065, upload-time = "2023-12-06T22:46:30.994Z" },
 ]
 
 [[package]]
@@ -652,14 +643,14 @@ wheels = [
 
 [[package]]
 name = "faiss-cpu"
-version = "1.7.2"
+version = "1.7.4"
 source = { registry = "https://pypi.org/simple" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/53/29/bec6e5fafcc3a9f7c5e3c1f7930f175bfd4a62bbc5955c8ba042fba15197/faiss_cpu-1.7.2-cp310-cp310-macosx_10_9_x86_64.whl", hash = "sha256:b7461f989d757917a3e6dc81eb171d0b563eb98d23ebaf7fc6684d0093ba267e", size = 2209984, upload-time = "2022-01-11T07:08:59.243Z" },
-    { url = "https://files.pythonhosted.org/packages/74/e9/3f2422cd03333a24e3afdeb7374ee0f3d835a2e20cd441d393eed92d9100/faiss_cpu-1.7.2-cp310-cp310-macosx_11_0_arm64.whl", hash = "sha256:c4c80080a07babb78a1570eb2a8f22d782a958bd02c7a8e2e7d0668d445239c8", size = 1908955, upload-time = "2022-01-11T07:09:01.334Z" },
-    { url = "https://files.pythonhosted.org/packages/eb/85/7aaa349b76d5a2027f245ec754f8a9251d803208e038f7292bfe54000196/faiss_cpu-1.7.2-cp310-cp310-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:437cb28a1f693ec304f572cdd306e4a79fca7d193ded6a183b74166a51d2fa8c", size = 2610785, upload-time = "2022-01-11T07:09:03.014Z" },
-    { url = "https://files.pythonhosted.org/packages/de/63/8fcdda721c342d361893a3246e08fa71465c35f60a3b1c8586bf591c8bb0/faiss_cpu-1.7.2-cp310-cp310-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:e2998a37a46c6ffb6f79ac7dcbe8ab5959ff8c343766e2eaf6cf98d057913fe0", size = 8561269, upload-time = "2022-01-11T07:09:04.91Z" },
-    { url = "https://files.pythonhosted.org/packages/2b/3b/66512f84ecbd47f58855d9584ab730d7db2a5d3f9c6086b013c9e9358d4c/faiss_cpu-1.7.2-cp310-cp310-win_amd64.whl", hash = "sha256:0c486f20603a552e42ba8c7aa8d2cfbbc4e850aa258fb87aacd8a841fa61bbae", size = 9933831, upload-time = "2022-01-11T07:09:07.186Z" },
+    { url = "https://files.pythonhosted.org/packages/e4/5d/c35f5285b85b54b4b154ce40a8810d57a306f2da4a9a58cb7498f9aefadb/faiss_cpu-1.7.4-cp310-cp310-macosx_10_9_x86_64.whl", hash = "sha256:50d4ebe7f1869483751c558558504f818980292a9b55be36f9a1ee1009d9a686", size = 6545349, upload-time = "2023-04-24T10:41:46.807Z" },
+    { url = "https://files.pythonhosted.org/packages/21/d1/f44f02d87d238cd51174f19c55e8a0a3cd1a6207e4eb526c847939986556/faiss_cpu-1.7.4-cp310-cp310-macosx_11_0_arm64.whl", hash = "sha256:7b1db7fae7bd8312aeedd0c41536bcd19a6e297229e1dce526bde3a73ab8c0b5", size = 2749271, upload-time = "2023-04-24T10:41:49.735Z" },
+    { url = "https://files.pythonhosted.org/packages/e9/9d/8e5b8e291a3e94cdf5a6a815ca1d9a4b8260f8adec78c67ec1fd76670b4d/faiss_cpu-1.7.4-cp310-cp310-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:17b7fa7194a228a84929d9e6619d0e7dbf00cc0f717e3462253766f5e3d07de8", size = 3204959, upload-time = "2023-04-24T10:41:51.627Z" },
+    { url = "https://files.pythonhosted.org/packages/98/a6/4caf215afd86e3b365f3ba0d9c01800d46bc8e42e65fe3667dd9dd3a3213/faiss_cpu-1.7.4-cp310-cp310-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:dca531952a2e3eac56f479ff22951af4715ee44788a3fe991d208d766d3f95f3", size = 17554839, upload-time = "2023-04-24T10:41:54.479Z" },
+    { url = "https://files.pythonhosted.org/packages/0a/3d/d5e431cf7f6c55580581ce965baa56de02be374de838791db9d2a81c20e0/faiss_cpu-1.7.4-cp310-cp310-win_amd64.whl", hash = "sha256:7173081d605e74766f950f2e3d6568a6f00c53f32fd9318063e96728c6c62821", size = 10771167, upload-time = "2023-04-24T10:41:57Z" },
 ]
 
 [[package]]
@@ -811,7 +802,6 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/fe/65/5b235b40581ad75ab97dcd8b4218022ae8e3ab77c13c919f1a1dfe9171fd/greenlet-3.3.1-cp310-cp310-macosx_11_0_universal2.whl", hash = "sha256:04bee4775f40ecefcdaa9d115ab44736cd4b9c5fba733575bfe9379419582e13", size = 273723, upload-time = "2026-01-23T15:30:37.521Z" },
     { url = "https://files.pythonhosted.org/packages/ce/ad/eb4729b85cba2d29499e0a04ca6fbdd8f540afd7be142fd571eea43d712f/greenlet-3.3.1-cp310-cp310-manylinux_2_24_aarch64.manylinux_2_28_aarch64.whl", hash = "sha256:50e1457f4fed12a50e427988a07f0f9df53cf0ee8da23fab16e6732c2ec909d4", size = 574874, upload-time = "2026-01-23T16:00:54.551Z" },
     { url = "https://files.pythonhosted.org/packages/87/32/57cad7fe4c8b82fdaa098c89498ef85ad92dfbb09d5eb713adedfc2ae1f5/greenlet-3.3.1-cp310-cp310-manylinux_2_24_ppc64le.manylinux_2_28_ppc64le.whl", hash = "sha256:070472cd156f0656f86f92e954591644e158fd65aa415ffbe2d44ca77656a8f5", size = 586309, upload-time = "2026-01-23T16:05:25.18Z" },
-    { url = "https://files.pythonhosted.org/packages/66/66/f041005cb87055e62b0d68680e88ec1a57f4688523d5e2fb305841bc8307/greenlet-3.3.1-cp310-cp310-manylinux_2_24_s390x.manylinux_2_28_s390x.whl", hash = "sha256:1108b61b06b5224656121c3c8ee8876161c491cbe74e5c519e0634c837cf93d5", size = 597461, upload-time = "2026-01-23T16:15:51.943Z" },
     { url = "https://files.pythonhosted.org/packages/87/eb/8a1ec2da4d55824f160594a75a9d8354a5fe0a300fb1c48e7944265217e1/greenlet-3.3.1-cp310-cp310-manylinux_2_24_x86_64.manylinux_2_28_x86_64.whl", hash = "sha256:3a300354f27dd86bae5fbf7002e6dd2b3255cd372e9242c933faf5e859b703fe", size = 586985, upload-time = "2026-01-23T15:32:47.968Z" },
     { url = "https://files.pythonhosted.org/packages/15/1c/0621dd4321dd8c351372ee8f9308136acb628600658a49be1b7504208738/greenlet-3.3.1-cp310-cp310-musllinux_1_2_aarch64.whl", hash = "sha256:e84b51cbebf9ae573b5fbd15df88887815e3253fc000a7d0ff95170e8f7e9729", size = 1547271, upload-time = "2026-01-23T16:04:18.977Z" },
     { url = "https://files.pythonhosted.org/packages/9d/53/24047f8924c83bea7a59c8678d9571209c6bfe5f4c17c94a78c06024e9f2/greenlet-3.3.1-cp310-cp310-musllinux_1_2_x86_64.whl", hash = "sha256:e0093bd1a06d899892427217f0ff2a3c8f306182b8c754336d32e2d587c131b4", size = 1613427, upload-time = "2026-01-23T15:33:44.428Z" },
@@ -2363,14 +2353,15 @@ version = "0.1.0"
 source = { editable = "." }
 dependencies = [
     { name = "accelerate" },
-    { name = "bitsandbytes" },
     { name = "chromadb" },
+    { name = "faiss-cpu" },
     { name = "huggingface-hub" },
     { name = "langchain" },
     { name = "langchain-community" },
     { name = "loguru" },
     { name = "mlflow" },
     { name = "numpy" },
+    { name = "openai" },
     { name = "pandas" },
     { name = "pdfplumber" },
     { name = "pydantic" },
@@ -2410,9 +2401,9 @@ gpu = [
 requires-dist = [
     { name = "accelerate", specifier = "==0.25.0" },
     { name = "bert-score", marker = "extra == 'eval'", specifier = "==0.3.13" },
-    { name = "bitsandbytes", specifier = "==0.41.3" },
     { name = "chromadb", specifier = "==0.4.22" },
-    { name = "faiss-cpu", marker = "extra == 'gpu'", specifier = "==1.7.2" },
+    { name = "faiss-cpu", specifier = "==1.7.4" },
+    { name = "faiss-cpu", marker = "extra == 'gpu'", specifier = "==1.7.4" },
     { name = "fastapi", marker = "extra == 'api'", specifier = "==0.109.0" },
     { name = "huggingface-hub", specifier = "==0.20.2" },
     { name = "langchain", specifier = "==0.1.0" },
@@ -2420,6 +2411,7 @@ requires-dist = [
     { name = "loguru", specifier = "==0.7.2" },
     { name = "mlflow", specifier = "==2.9.2" },
     { name = "numpy", specifier = ">=1.24.3" },
+    { name = "openai", specifier = ">=1.0.0" },
     { name = "pandas", specifier = ">=2.1.4" },
     { name = "pdfplumber", specifier = "==0.10.3" },
     { name = "pydantic", specifier = "==2.5.3" },

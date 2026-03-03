@@ -49,22 +49,12 @@ class RetrieverConfig:
 
 @dataclass
 class LLMConfig:
-    """Configuration for LLM."""
-    model_name: str = "mistralai/Mistral-7B-Instruct-v0.2"
-    device: str = "cuda" if torch.cuda.is_available() else "cpu"
+    """Configuration for LLM (OpenAI-based)."""
+    model_name: str = "gpt-4o-mini"  # OpenAI model (cheaper than gpt-3.5-turbo)
+    device: str = "cpu"  # Not used for OpenAI, kept for compatibility
     max_new_tokens: int = 256
-    temperature=False
-    top_p = 1
-    # temperature: float = 0.1
-    # top_p: float = 5
-    # load_in_4bit: bool = True  # Use 4-bit quantization for efficiency
-    # use_flash_attention: bool = True
-
-
-    model_name: str = "microsoft/Phi-3-mini-4k-instruct"  # 3.8B params - CPU friendly
-    use_gpu: bool = False  # Safer default
-    load_in_4bit: bool = False  # Disabled for CPU compatibility
-    use_flash_attention: bool = False  # Not available on CPU
+    temperature: float = 0.1  # Low temperature for factual responses
+    top_p: float = 1.0
 
 
 @dataclass

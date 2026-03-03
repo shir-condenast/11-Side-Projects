@@ -21,8 +21,8 @@ dependencies = [
     "transformers==4.36.2",
     "torch==2.1.2",
     "accelerate==0.25.0",
-    "bitsandbytes==0.41.3",
     "huggingface-hub==0.20.2",
+    "openai>=1.0.0",
 
     # Re-ranking
     "rank-bm25==0.2.2",
@@ -30,6 +30,7 @@ dependencies = [
 
     # Vector Store
     "qdrant-client==1.7.0",
+    "faiss-cpu==1.7.4",
 
     # Utilities
     "python-dotenv==1.0.0",
