@@ -6,84 +6,92 @@ from src.data_loader import load_articles
 
 def main(articles):
     st.set_page_config(
-        page_title="Interior Design Article Search",
-        page_icon="🏠",
+        page_title="Interior Design Consultant",
+        page_icon="🎨",
         layout="wide"
     )
 
-    st.title("🏠 Architectural Articles Search")
+    st.title("🎨 Your Interior Design Consultant")
     st.markdown(
-        "*Lets design your dream house together*"
+        "*Tell me what you're dreaming of, and I'll share some inspiring ideas*"
     )
 
     # Initialize RAG
-    with st.spinner("Initializing system..."):
+    with st.spinner("Initializing your design assistant..."):
         rag = get_rag(articles)
 
     # Sidebar
     with st.sidebar:
-        st.header("⚙️ Search Settings")
+        st.header("⚙️ Preferences")
 
-        num_results = st.slider("Number of results", 1, 10, 5)
+        num_results = st.slider("How many ideas?", 1, 10, 5)
         search_weight = st.slider(
-            "Semantic vs Keyword weight",
-            0.0, 1.0, 0.5
+            "Style matching",
+            0.0, 1.0, 0.5,
+            help="0 = keyword match, 1 = style/mood match"
         )
 
         st.markdown("---")
         st.markdown("""
-        **Hybrid RAG stack**
-        - Dense retrieval (embeddings)
-        - Sparse retrieval (keywords)
-        - LLM summaries (OpenAI)
+        **Powered by**
+        - Semantic understanding
+        - Style-aware search
+        - AI recommendations
         """)
 
-    # Search box
-    col1, col2 = st.columns([4, 1])
-    with col1:
-        query = st.text_input(
-            "Search articles",
-            placeholder="pink dining rooms, modern kitchens...",
-            label_visibility="collapsed"
-        )
+    # Chat-like input
+    query = st.chat_input("What are you looking for? (e.g., 'pink dining rooms', 'cozy bedroom ideas')")
 
-    with col2:
-        search_clicked = st.button("🔍 Search", type="primary", use_container_width=True)
+    if query:
+        # User message
+        with st.chat_message("user"):
+            st.write(query)
 
-    # Search execution
-    if query and (search_clicked or query):
-        with st.spinner("Searching and summarizing..."):
-            results = rag.hybrid_search(
-                query=query,
-                top_k=num_results,
-                alpha=search_weight
-            )
-
-        if not results:
-            st.warning("No articles found.")
-            return
-
-        st.markdown(f"### Found {len(results)} articles")
-
-        for idx, article in enumerate(results, 1):
-            # Title as hyperlink
-            article_url = article.get('url', '#')
-            st.markdown(f"#### {idx}. [{article['title']}]({article_url})")
-
-            with st.spinner("Generating summary..."):
-                summary = rag.generate_summary(article)
-
-            st.markdown(f"**Summary:** {summary}")
-
-            # Show extracted keywords instead of tags
-            if article.get("keywords"):
-                keywords_html = " ".join(
-                    f"<span style='background:#3f49cf;padding:2px 8px;border-radius:4px;margin-right:4px'>{k}</span>"
-                    for k in article["keywords"]
+        # Assistant response
+        with st.chat_message("assistant", avatar="🎨"):
+            with st.spinner("Let me think about this..."):
+                results = rag.hybrid_search(
+                    query=query,
+                    top_k=num_results,
+                    alpha=search_weight
                 )
-                st.markdown(f"**Keywords:** {keywords_html}", unsafe_allow_html=True)
 
-            st.markdown("---")
+            if not results:
+                st.write("Hmm, I couldn't find anything matching that. Could you describe what you're looking for differently?")
+                return
+
+            # Generate conversational intro
+            with st.spinner(""):
+                intro = rag.generate_conversation_intro(query, results)
+
+            st.write(intro)
+            st.markdown("")
+            st.markdown("**Here are my recommendations:**")
+            st.markdown("")
+
+            # Display each recommendation
+            for idx, article in enumerate(results, 1):
+                article_url = article.get('url', '#')
+
+                # Generate personalized recommendation
+                with st.spinner(""):
+                    recommendation = rag.generate_recommendation(article, query)
+
+                # Article title as link
+                st.markdown(f"**{idx}. [{article['title']}]({article_url})**")
+
+                # Personalized recommendation text
+                st.markdown(f"→ {recommendation}")
+
+                # Keywords as subtle tags
+                if article.get("keywords"):
+                    keywords_html = " ".join(
+                        f"<span style='background:#e8e8e8;color:#555;padding:2px 6px;border-radius:3px;font-size:0.8em;margin-right:3px'>{k}</span>"
+                        for k in article["keywords"]
+                    )
+                    st.markdown(keywords_html, unsafe_allow_html=True)
+
+                st.markdown("")
 
 
 if __name__ == "__main__":

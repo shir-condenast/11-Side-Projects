@@ -213,8 +213,60 @@ class HybridRAG:
 
         return final_results
     
+    def generate_conversation_intro(self, query: str, articles: List[Dict]) -> str:
+        """Generate a warm, conversational intro based on the query and results"""
+        try:
+            # Create a brief overview of found articles
+            article_titles = [a['title'] for a in articles[:3]]
+
+            prompt = f"""A client just asked about: "{query}"
+
+You found these relevant design ideas: {', '.join(article_titles)}
+
+Write a warm, 2-3 sentence introduction as an experienced interior design consultant welcoming their interest and briefly previewing what you'll share. Be enthusiastic but professional."""
+
+            response = self.openai_client.chat.completions.create(
+                model='gpt-4o-mini',
+                messages=[
+                    {"role": "system", "content": "You are an experienced interior design consultant with 20 years of expertise. You speak warmly and professionally, as if advising a valued client in your design studio. Never use bullet points or lists in this intro."},
+                    {"role": "user", "content": prompt}
+                ],
+                max_tokens=150,
+                temperature=0.8
+            )
+
+            return response.choices[0].message.content.strip()
+        except Exception as e:
+            print(f"OpenAI API error: {e}")
+            return f"Let me share some wonderful ideas for {query}!"
+
+    def generate_recommendation(self, article: Dict, query: str) -> str:
+        """Generate a personalized recommendation for a single article"""
+        try:
+            prompt = f"""Client asked about: "{query}"
+
+Article: {article['title']}
+Details: {article['content']}
+
+Write ONE sentence recommending this to the client. Be specific about why it fits their interest. Speak directly to them ("You might love..." or "Consider..." or "This would be perfect if...")."""
+
+            response = self.openai_client.chat.completions.create(
+                model='gpt-4o-mini',
+                messages=[
+                    {"role": "system", "content": "You are an experienced interior design consultant giving personalized recommendations. Be warm, specific, and helpful. One sentence only."},
+                    {"role": "user", "content": prompt}
+                ],
+                max_tokens=80,
+                temperature=0.7
+            )
+
+            return response.choices[0].message.content.strip()
+        except Exception as e:
+            print(f"OpenAI API error: {e}")
+            return article['content'][:100] + "..."
+
     def generate_summary(self, article: Dict) -> str:
-        """Generate 2-3 line summary using OpenAI GPT"""
+        """Generate 2-3 line summary using OpenAI GPT (legacy method)"""
         try:
             prompt = f"""Summarize this interior design article in 2-3 lines for a user searching for design inspiration.
 
