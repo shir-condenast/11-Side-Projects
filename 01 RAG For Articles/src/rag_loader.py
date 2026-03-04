@@ -167,7 +167,7 @@ Content: {article['content']}
 Summary:"""
 
             response = self.openai_client.chat.completions.create(
-                model='gpt-3.5-turbo',
+                model='gpt-4o-mini',
                 messages=[
                     {"role": "system", "content": "You are a helpful interior design assistant that creates concise, inspiring summaries."},
                     {"role": "user", "content": prompt}
