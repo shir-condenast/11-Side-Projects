@@ -35,7 +35,7 @@ def main(articles):
         **Hybrid RAG stack**
         - Dense retrieval (embeddings)
         - Sparse retrieval (keywords)
-        - LLM summaries (Ollama)
+        - LLM summaries (OpenAI)
         """)
 
     # Search box
@@ -66,19 +66,22 @@ def main(articles):
         st.markdown(f"### Found {len(results)} articles")
 
         for idx, article in enumerate(results, 1):
-            st.markdown(f"#### {idx}. {article['title']}")
+            # Title as hyperlink
+            article_url = article.get('url', '#')
+            st.markdown(f"#### {idx}. [{article['title']}]({article_url})")
 
             with st.spinner("Generating summary..."):
                 summary = rag.generate_summary(article)
 
             st.markdown(f"**Summary:** {summary}")
 
-            if article.get("tags"):
-                tags = " ".join(
-                    f"<span style='background:#3f49cf;padding:2px 8px;border-radius:4px'>{t}</span>"
-                    for t in article["tags"]
+            # Show extracted keywords instead of tags
+            if article.get("keywords"):
+                keywords_html = " ".join(
+                    f"<span style='background:#3f49cf;padding:2px 8px;border-radius:4px;margin-right:4px'>{k}</span>"
+                    for k in article["keywords"]
                 )
-                st.markdown(tags, unsafe_allow_html=True)
+                st.markdown(f"**Keywords:** {keywords_html}", unsafe_allow_html=True)
 
             st.markdown("---")
 
