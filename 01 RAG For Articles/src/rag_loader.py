@@ -9,20 +9,18 @@ from dotenv import load_dotenv
 import re
 from collections import Counter
 
+import nltk
+nltk.download('stopwords', quiet=True)
+from nltk.corpus import stopwords
+
 # Load environment variables
 load_dotenv()
 
-# Common stopwords to filter out from keywords
-STOPWORDS = {
-    'the', 'and', 'for', 'with', 'are', 'that', 'this', 'from', 'your', 'have',
-    'will', 'can', 'all', 'any', 'been', 'has', 'had', 'but', 'not', 'you',
-    'was', 'were', 'they', 'their', 'what', 'when', 'where', 'which', 'who',
-    'how', 'more', 'most', 'other', 'into', 'over', 'such', 'than', 'then',
-    'these', 'those', 'each', 'every', 'both', 'few', 'some', 'her', 'him',
-    'his', 'its', 'our', 'out', 'own', 'same', 'she', 'should', 'could',
-    'would', 'about', 'above', 'after', 'again', 'also', 'create', 'creates',
-    'add', 'adds', 'pair', 'pairs', 'perfect', 'beautiful', 'works', 'feel',
-    'feels', 'keep', 'mix', 'combine', 'layer', 'balance'
+# NLTK English stopwords + domain-specific words to filter from keywords
+STOPWORDS = set(stopwords.words('english')) | {
+    'create', 'creates', 'add', 'adds', 'pair', 'pairs', 'perfect',
+    'beautiful', 'works', 'feel', 'feels', 'keep', 'mix', 'combine',
+    'layer', 'balance', 'style', 'design', 'room', 'rooms', 'space', 'spaces'
 }
 
 

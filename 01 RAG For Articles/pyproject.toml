@@ -12,6 +12,7 @@ dependencies = [
     "ipywidgets>=8.1.7",
     "jupyter-dash>=0.4.2",
     "matplotlib>=3.10.6",
+    "nltk>=3.9.3",
     "numpy>=2.3.3",
     "openai>=1.0.0",
     "pandas>=2.3.3",
