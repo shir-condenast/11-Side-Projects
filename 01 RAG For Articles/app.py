@@ -56,8 +56,15 @@ def main(articles):
                     alpha=search_weight
                 )
 
+            # GUARDRAIL: Handle no relevant results gracefully
             if not results:
-                st.write("Hmm, I couldn't find anything matching that. Could you describe what you're looking for differently?")
+                no_results_msg = rag.generate_no_results_response(query)
+                st.write(no_results_msg)
+                st.markdown("")
+                st.markdown("💡 **Try asking about:**")
+                st.markdown("- Pink dining rooms, blush bedrooms")
+                st.markdown("- Modern kitchens, cozy living spaces")
+                st.markdown("- Color palettes (navy, emerald, coral)")
                 return
 
             # Generate conversational intro
@@ -80,7 +87,7 @@ def main(articles):
                 # Article title as link
                 st.markdown(f"**{idx}. [{article['title']}]({article_url})**")
 
-                # Personalized recommendation text
+                # Personalized recommendation text (grounded in article content)
                 st.markdown(f"→ {recommendation}")
 
                 # Keywords as subtle tags

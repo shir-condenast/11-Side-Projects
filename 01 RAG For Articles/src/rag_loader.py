@@ -103,20 +103,30 @@ class HybridRAG:
         scored_articles.sort(key=lambda x: x["score"], reverse=True)
         return [item["article"] for item in scored_articles[:top_k]]
 
+    # Maximum distance for semantic matches (higher = less similar)
+    # 0.5 = very similar, 0.7 = somewhat similar, 0.85+ = weak/irrelevant
+    MAX_SEMANTIC_DISTANCE = 0.75
+
     def semantic_search(self, query: str, top_k: int = 10) -> List[Dict]:
-        """Dense vector-based semantic search"""
+        """Dense vector-based semantic search with distance filtering"""
         results = self.collection.query(
             query_texts=[query],
-            n_results=top_k
+            n_results=top_k,
+            include=['metadatas', 'distances']  # Include distances for filtering
         )
 
         articles = []
         if results['metadatas'] and len(results['metadatas']) > 0:
-            for metadata in results['metadatas'][0]:
+            for metadata, distance in zip(results['metadatas'][0], results['distances'][0]):
+                # GUARDRAIL: Filter out weak semantic matches
+                if distance > self.MAX_SEMANTIC_DISTANCE:
+                    continue
+
                 articles.append({
                     "title": metadata["title"],
                     "content": metadata["content"],
-                    "url": metadata.get("url", "")
+                    "url": metadata.get("url", ""),
+                    "semantic_distance": distance  # Include for debugging
                 })
 
         return articles
@@ -158,6 +168,9 @@ class HybridRAG:
         scored_words.sort(key=lambda x: x[1], reverse=True)
         return [word for word, _ in scored_words[:max_keywords]]
 
+    # Minimum relevance score to include an article (prevents weak matches)
+    MIN_RELEVANCE_SCORE = 2.0
+
     def hybrid_search(self, query: str, top_k: int = 5, alpha: float = 0.5) -> List[Dict]:
         """Combine sparse and dense search results
 
@@ -165,6 +178,9 @@ class HybridRAG:
             query: Search query
             top_k: Number of results to return
             alpha: Weight for semantic search (1-alpha for keyword search)
+
+        Returns:
+            List of articles with relevance scores. Empty list if no relevant matches.
         """
         # Get results from both methods
         keyword_results = self.keyword_search(query, top_k * 2)
@@ -202,15 +218,29 @@ class HybridRAG:
             reverse=True
         )
 
-        # Extract keywords for each result
+        # Extract keywords for each result, filter by relevance threshold
         final_results = []
         for item in sorted_results[:top_k]:
+            # GUARDRAIL: Skip articles below minimum relevance score
+            if item['score'] < self.MIN_RELEVANCE_SCORE:
+                continue
+
             article = item['article']
             article['keywords'] = self.extract_keywords(article, query)
+            article['relevance_score'] = item['score']  # Include score for transparency
             final_results.append(article)
 
         return final_results
-    
+
+    def generate_no_results_response(self, query: str) -> str:
+        """Generate a helpful response when no relevant articles are found"""
+        return (
+            f"I don't have specific articles about \"{query}\" in my collection. "
+            "My expertise covers interior design topics like dining rooms, bedrooms, "
+            "living spaces, color palettes, and decor styles. "
+            "Could you try rephrasing your question or ask about a different design topic?"
+        )
+
     def generate_conversation_intro(self, query: str, articles: List[Dict]) -> str:
         """Generate a warm, conversational intro based on the query and results"""
         try:
@@ -221,16 +251,18 @@ class HybridRAG:
 
 You found these relevant design ideas: {', '.join(article_titles)}
 
-Write a warm, 2-3 sentence introduction as an experienced interior design consultant welcoming their interest and briefly previewing what you'll share. Be enthusiastic but professional."""
+Write a warm, 2-3 sentence introduction as an experienced interior design consultant welcoming their interest and briefly previewing what you'll share. Be enthusiastic but professional.
+
+IMPORTANT: Only mention design elements, colors, or styles that appear in the article titles above. Do not invent trends, statistics, or facts not present in the titles."""
 
             response = self.openai_client.chat.completions.create(
                 model='gpt-4o-mini',
                 messages=[
-                    {"role": "system", "content": "You are an experienced interior design consultant with 20 years of expertise. You speak warmly and professionally, as if advising a valued client in your design studio. Never use bullet points or lists in this intro."},
+                    {"role": "system", "content": "You are an experienced interior design consultant with 20 years of expertise. You speak warmly and professionally. CRITICAL: You must ONLY reference information from the provided article titles. Never invent design trends, statistics, celebrity endorsements, or facts. If unsure, keep it general."},
                     {"role": "user", "content": prompt}
                 ],
                 max_tokens=150,
-                temperature=0.8
+                temperature=0.7  # Lowered from 0.8 for more grounded responses
             )
 
             return response.choices[0].message.content.strip()
@@ -243,19 +275,25 @@ Write a warm, 2-3 sentence introduction as an experienced interior design consul
         try:
             prompt = f"""Client asked about: "{query}"
 
-Article: {article['title']}
-Details: {article['content']}
+Article Title: {article['title']}
+Article Content: {article['content']}
 
-Write ONE sentence recommending this to the client. Be specific about why it fits their interest. Speak directly to them ("You might love..." or "Consider..." or "This would be perfect if...")."""
+Write ONE sentence recommending this to the client. Speak directly to them ("You might love..." or "Consider..." or "This would be perfect if...").
+
+CRITICAL RULES:
+1. ONLY use information explicitly stated in the Article Content above
+2. Do NOT invent prices, brands, statistics, or facts not in the content
+3. Do NOT mention specific products, stores, or designers unless they appear in the content
+4. Keep the recommendation grounded in what the article actually says"""
 
             response = self.openai_client.chat.completions.create(
                 model='gpt-4o-mini',
                 messages=[
-                    {"role": "system", "content": "You are an experienced interior design consultant giving personalized recommendations. Be warm, specific, and helpful. One sentence only."},
+                    {"role": "system", "content": "You are an interior design consultant. IMPORTANT: Base your recommendation ONLY on the provided article content. Never hallucinate information, prices, brand names, or specific products not mentioned. If the article content is brief, keep your recommendation brief and general. One sentence only."},
                     {"role": "user", "content": prompt}
                 ],
                 max_tokens=80,
-                temperature=0.7
+                temperature=0.5  # Lowered from 0.7 for more factual responses
             )
 
             return response.choices[0].message.content.strip()
