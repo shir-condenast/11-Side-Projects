@@ -13,6 +13,8 @@ import nltk
 nltk.download('stopwords', quiet=True)
 from nltk.corpus import stopwords
 
+from sentence_transformers import CrossEncoder
+
 # Load environment variables
 load_dotenv()
 
@@ -25,7 +27,7 @@ STOPWORDS = set(stopwords.words('english')) | {
 
 
 class HybridRAG:
-    def __init__(self, SAMPLE_ARTICLES):
+    def __init__(self, SAMPLE_ARTICLES, use_reranker: bool = True):
         # Initialize ChromaDB
         self.client = Client()
 
@@ -47,6 +49,13 @@ class HybridRAG:
 
         # Store articles for keyword search
         self.articles = SAMPLE_ARTICLES
+
+        # Initialize CrossEncoder reranker
+        self.use_reranker = use_reranker
+        if use_reranker:
+            # ms-marco-MiniLM-L-6-v2 is a good balance of speed and quality
+            # Alternatives: 'cross-encoder/ms-marco-MiniLM-L-12-v2' (better quality, slower)
+            self.reranker = CrossEncoder('cross-encoder/ms-marco-MiniLM-L-6-v2')
 
         # Initialize OpenAI client with API key from environment
         api_key = os.getenv("OPENAI_API_KEY")
@@ -131,6 +140,42 @@ class HybridRAG:
 
         return articles
 
+    def rerank(self, query: str, articles: List[Dict], top_k: int = 5) -> List[Dict]:
+        """Rerank articles using CrossEncoder for improved relevance.
+
+        Args:
+            query: The search query
+            articles: List of articles to rerank
+            top_k: Number of top results to return after reranking
+
+        Returns:
+            Reranked list of articles with rerank_score added
+        """
+        if not articles or not self.use_reranker:
+            return articles[:top_k]
+
+        # Create query-document pairs for CrossEncoder
+        pairs = [
+            [query, f"{article['title']}. {article['content']}"]
+            for article in articles
+        ]
+
+        # Get relevance scores from CrossEncoder
+        scores = self.reranker.predict(pairs)
+
+        # Attach scores to articles and sort by score (descending)
+        scored_articles = list(zip(articles, scores))
+        scored_articles.sort(key=lambda x: x[1], reverse=True)
+
+        # Return top_k articles with rerank score added
+        reranked = []
+        for article, score in scored_articles[:top_k]:
+            article_copy = article.copy()
+            article_copy['rerank_score'] = float(score)
+            reranked.append(article_copy)
+
+        return reranked
+
     def extract_keywords(self, article: Dict, query: str, max_keywords: int = 3) -> List[str]:
         """Extract top keywords from article based on relevance to query.
 
@@ -172,7 +217,7 @@ class HybridRAG:
     MIN_RELEVANCE_SCORE = 2.0
 
     def hybrid_search(self, query: str, top_k: int = 5, alpha: float = 0.5) -> List[Dict]:
-        """Combine sparse and dense search results
+        """Combine sparse and dense search results, then rerank with CrossEncoder.
 
         Args:
             query: Search query
@@ -182,9 +227,12 @@ class HybridRAG:
         Returns:
             List of articles with relevance scores. Empty list if no relevant matches.
         """
+        # Retrieve more candidates for reranking (3-4x top_k is a good ratio)
+        retrieve_k = top_k * 4 if self.use_reranker else top_k * 2
+
         # Get results from both methods
-        keyword_results = self.keyword_search(query, top_k * 2)
-        semantic_results = self.semantic_search(query, top_k * 2)
+        keyword_results = self.keyword_search(query, retrieve_k)
+        semantic_results = self.semantic_search(query, retrieve_k)
 
         # Combine and deduplicate
         combined = {}
@@ -218,16 +266,28 @@ class HybridRAG:
             reverse=True
         )
 
-        # Extract keywords for each result, filter by relevance threshold
-        final_results = []
-        for item in sorted_results[:top_k]:
-            # GUARDRAIL: Skip articles below minimum relevance score
-            if item['score'] < self.MIN_RELEVANCE_SCORE:
-                continue
+        # Filter by minimum relevance score before reranking
+        filtered_articles = []
+        for item in sorted_results:
+            if item['score'] >= self.MIN_RELEVANCE_SCORE:
+                article = item['article']
+                article['hybrid_score'] = item['score']
+                filtered_articles.append(article)
 
-            article = item['article']
+        # Rerank the filtered results using CrossEncoder
+        if self.use_reranker and filtered_articles:
+            # Get more candidates for reranking, then take top_k
+            rerank_candidates = filtered_articles[:top_k * 3]
+            reranked_articles = self.rerank(query, rerank_candidates, top_k)
+        else:
+            reranked_articles = filtered_articles[:top_k]
+
+        # Extract keywords for final results
+        final_results = []
+        for article in reranked_articles:
             article['keywords'] = self.extract_keywords(article, query)
-            article['relevance_score'] = item['score']  # Include score for transparency
+            # Keep both scores for transparency
+            article['relevance_score'] = article.get('rerank_score', article.get('hybrid_score', 0))
             final_results.append(article)
 
         return final_results

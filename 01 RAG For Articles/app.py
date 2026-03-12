@@ -34,9 +34,9 @@ def main(articles):
         st.markdown("---")
         st.markdown("""
         **Powered by**
-        - Semantic understanding
-        - Style-aware search
-        - AI recommendations
+        - 🔍 Hybrid search (keyword + semantic)
+        - 🎯 CrossEncoder reranking
+        - 🤖 GPT-4o-mini recommendations
         """)
 
     # Chat-like input
