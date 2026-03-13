@@ -1,0 +1,86 @@
+[
+  {
+    "question": "What features characterize a timeless kitchen design?",
+    "ground_truth": "A timeless kitchen design is characterized by classic materials, functional layouts, and a cohesive color palette that integrates seamlessly with the rest of the home.",
+    "relevant_titles": [
+      "A Timeless Kitchen Design Sits at the Heart of This Renovated 19th-Century Stone House"
+    ]
+  },
+  {
+    "question": "What color trends are predicted for 2026 according to AD100 designers?",
+    "ground_truth": "AD100 designers predict that warm earth tones, muted pastels, and bold jewel tones will be popular in 2026, reflecting a blend of comfort and vibrancy in design.",
+    "relevant_titles": [
+      "Trendfarben 2026: Diese Farbtöne sind im kommenden Jahr angesagt – laut AD100-Designer:innen"
+    ]
+  },
+  {
+    "question": "What is a notable architectural style associated with Frank Gehry?",
+    "ground_truth": "Frank Gehry is known for his deconstructivist architectural style that challenges traditional forms and embraces unconventional shapes and materials.",
+    "relevant_titles": [
+      "Les 10 projets les plus spectaculaires de Frank Gehry, de Paris à Los Angeles"
+    ]
+  },
+  {
+    "question": "What are some relaxing cities to visit in 2025?",
+    "ground_truth": "The five most relaxing cities to visit in 2025 include cities known for their natural beauty, slow pace of life, and serene environments, though specific city names are not provided in the preview.",
+    "relevant_titles": [
+      "Les 5 villes les plus relaxantes à visiter dans le monde en 2025"
+    ]
+  },
+  {
+    "question": "What is the significance of the new Art Nouveau museum opening in Paris?",
+    "ground_truth": "The new Art Nouveau museum in Paris is significant as it showcases the architectural style that combines elegance with functional design, enriching the cultural landscape of the city.",
+    "relevant_titles": [
+      "À Paris, un musée Art nouveau ouvre dans un hôtel particulier"
+    ]
+  },
+  {
+    "question": "What defines 'quiet luxury' in residential design?",
+    "ground_truth": "'Quiet luxury' in residential design is defined by understated elegance, high-quality materials, and a focus on comfort rather than ostentation.",
+    "relevant_titles": [
+      "Perché (quasi tutta) la high society madrilena passa l’estate in questo complesso residenziale a 700 km dalla capitale?"
+    ]
+  },
+  {
+    "question": "What is the focus of the International Festival of Art, Cheese, and Wine in Tequisquiapan?",
+    "ground_truth": "The festival focuses on celebrating local art, gastronomy, and culture, attracting visitors to experience the region's artistic and culinary offerings.",
+    "relevant_titles": [
+      "El Festival Internacional del Arte, Queso y Vino regresa a Tequisquiapan este 2025 con más sorpresas que nunca"
+    ]
+  },
+  {
+    "question": "What type of art exhibitions are highlighted in Italy for this month?",
+    "ground_truth": "The highlighted art exhibitions in Italy for this month feature contemporary and classic works, showcasing both emerging and established artists.",
+    "relevant_titles": [
+      "25 mostre d’arte da non perdere in Italia questo mese"
+    ]
+  },
+  {
+    "question": "How has Kendrick Lamar's childhood influenced his real estate choices?",
+    "ground_truth": "Kendrick Lamar's childhood in Compton has influenced his real estate choices by emphasizing authenticity and a connection to his roots in his property investments.",
+    "relevant_titles": [
+      "Le luxueux portefeuille immobilier de Kendrick Lamar"
+    ]
+  },
+  {
+    "question": "What are some design elements of Gemmyo's new flagship store in Paris?",
+    "ground_truth": "Gemmyo's new flagship store features bespoke design elements that emphasize luxury and craftsmanship, with a focus on creating an inviting shopping experience.",
+    "relevant_titles": [
+      "Gemmyo dévoile son nouveau flagship parisien, un écrin taillé sur mesure"
+    ]
+  },
+  {
+    "question": "What materials are commonly used in modern kitchen designs?",
+    "ground_truth": "Common materials in modern kitchen designs include quartz countertops, stainless steel appliances, and hardwood or laminate flooring to create a clean and functional space.",
+    "relevant_titles": [
+      "A Timeless Kitchen Design Sits at the Heart of This Renovated 19th-Century Stone House"
+    ]
+  },
+  {
+    "question": "What architectural elements are essential for creating a cohesive design?",
+    "ground_truth": "Essential architectural elements for creating a cohesive design include harmony in materials, consistent color schemes, and a balanced layout that guides the flow of the space.",
+    "relevant_titles": [
+      "À Paris, un musée Art nouveau ouvre dans un hôtel particulier"
+    ]
+  }
+]

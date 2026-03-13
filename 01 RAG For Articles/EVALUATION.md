@@ -84,10 +84,76 @@ TEMPERATURE = 0.5 - 0.7       # Lower for factual responses
 
 ## How to Run
 
+### Option 1: Generate Questions Only (Recommended First Step)
+
+After updating your data, generate new test questions based on the current articles:
+
 ```bash
-cd "01 RAG For Articles"
-uv run python src/evaluation.py
+cd "11-Side-Projects/01 RAG For Articles"
+python3 scripts/generate_eval_questions.py
 ```
+
+This will:
+- Analyze your current articles in `data/articles.json`
+- Use GPT-4o-mini to generate relevant test questions
+- Save questions to `data/evaluation_questions.json`
+- **Not run any scoring** - just question generation
+
+### Option 2: Run Full Evaluation (With Pause)
+
+Run the complete evaluation with a pause before scoring:
+
+```bash
+python3 src/evaluation.py
+```
+
+This will:
+1. Load or generate test questions
+2. Generate RAG responses for each question
+3. **PAUSE** for you to review responses
+4. Wait for you to press ENTER
+5. Run RAGAS scoring
+6. Save results with timestamp
+
+### Option 3: Run End-to-End (No Pause)
+
+Skip the pause and run everything automatically:
+
+```bash
+python3 src/evaluation.py --no-pause
+```
+
+### Option 4: Force Regenerate Questions
+
+Force regeneration of test questions even if they exist:
+
+```bash
+python3 src/evaluation.py --regenerate
+```
+
+---
+
+## Workflow After Data Refresh
+
+When you update `data/articles.json` with new data:
+
+1. **Generate new questions** based on the fresh data:
+   ```bash
+   python3 scripts/generate_eval_questions.py
+   ```
+
+2. **Review the questions** in `data/evaluation_questions.json`
+
+3. **Run evaluation** with pause to review responses:
+   ```bash
+   python3 src/evaluation.py
+   ```
+
+4. **Review intermediate results** in `data/evaluation_responses.json`
+
+5. **Press ENTER** to continue with RAGAS scoring
+
+6. **Check final results** in `data/evaluation_results_YYYYMMDD_HHMMSS.json`
 
 ---
 

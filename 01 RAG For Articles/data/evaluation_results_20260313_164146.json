@@ -1,0 +1,10 @@
+{
+  "timestamp": "2026-03-13T16:41:46.620505",
+  "num_questions": 12,
+  "metrics": {
+    "faithfulness": 0.6721092496827791,
+    "answer_relevancy": 0.23780301120521452,
+    "context_precision": 0.6416666666144445,
+    "context_recall": 1.0
+  }
+}
