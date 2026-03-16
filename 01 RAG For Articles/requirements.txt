@@ -1,0 +1,15 @@
+chromadb>=1.1.0
+databricks-sdk>=0.20.0
+openai>=1.0.0
+pandas>=2.3.3
+python-dotenv>=1.1.1
+requests>=2.32.5
+scikit-learn>=1.7.2
+sentence-transformers>=5.1.1
+streamlit>=1.53.1
+tiktoken>=0.11.0
+torch>=2.8.0
+tqdm>=4.67.1
+numpy>=2.3.3
+nltk>=3.9.3
+

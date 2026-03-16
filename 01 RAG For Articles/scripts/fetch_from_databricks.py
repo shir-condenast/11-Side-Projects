@@ -44,14 +44,14 @@ def fetch_articles():
         AND hed IS NOT NULL
         AND full_url IS NOT NULL
         AND published_date >= '2026-01-01'
-    LIMIT 100
+    
 
     """
     
     print("\n3. Executing query...")
     print(f"   Query: SELECT id, hed, body, full_url FROM gold_us_prod.content.gld_cross_brand_live")
     print(f"   Filter: brand = 'Architectural Digest' AND published_date >= '2026-01-01'")
-    print(f"   Limit: 100 articles")
+    # print(f"   Limit: 100 articles")
     
     # Execute query
     result = w.statement_execution.execute_statement(
