@@ -43,23 +43,24 @@ def fetch_articles():
         AND body IS NOT NULL
         AND hed IS NOT NULL
         AND full_url IS NOT NULL
-        AND published_date >= '2026-01-01'
+        AND published_date >= '2025-01-01'
     
 
     """
     
     print("\n3. Executing query...")
     print(f"   Query: SELECT id, hed, body, full_url FROM gold_us_prod.content.gld_cross_brand_live")
-    print(f"   Filter: brand = 'Architectural Digest' AND published_date >= '2026-01-01'")
+    print(f"   Filter: brand = 'Architectural Digest' AND published_date >= '2025-01-01'")
     # print(f"   Limit: 100 articles")
     
+    print("Stage 1")
     # Execute query
     result = w.statement_execution.execute_statement(
         warehouse_id=warehouse.id,
         statement=query,
         wait_timeout="30s"
     )
-    
+    print("Stage 2")
     # Check if query succeeded
     from databricks.sdk.service.sql import StatementState
     if result.status.state != StatementState.SUCCEEDED:

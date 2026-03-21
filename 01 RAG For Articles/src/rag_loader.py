@@ -74,6 +74,7 @@ class HybridRAG:
             doc_text = f"{article['title']}. {article['content']}"
             documents.append(doc_text)
             metadatas.append({
+                "id": article["id"],  # Include ID in metadata for deduplication
                 "title": article["title"],
                 "content": article["content"],
                 "url": article.get("url", "")
@@ -132,6 +133,7 @@ class HybridRAG:
                     continue
 
                 articles.append({
+                    "id": metadata.get("id"),  # Include ID for proper deduplication
                     "title": metadata["title"],
                     "content": metadata["content"],
                     "url": metadata.get("url", ""),
@@ -282,9 +284,19 @@ class HybridRAG:
         else:
             reranked_articles = filtered_articles[:top_k]
 
-        # Extract keywords for final results
+        # Extract keywords for final results and ensure no duplicates
         final_results = []
+        seen_ids = set()
+
         for article in reranked_articles:
+            # Final deduplication check using ID
+            article_id = article.get('id')
+            if article_id and article_id in seen_ids:
+                continue  # Skip duplicate
+
+            if article_id:
+                seen_ids.add(article_id)
+
             article['keywords'] = self.extract_keywords(article, query)
             # Keep both scores for transparency
             article['relevance_score'] = article.get('rerank_score', article.get('hybrid_score', 0))
